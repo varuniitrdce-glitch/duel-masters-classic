@@ -1,110 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Duel Masters Classic (Fan Game)</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      text-align: center;
-    }
-    header {
-      background: #020617;
-      padding: 12px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .board {
-      padding: 12px;
-    }
-    .zone {
-      border: 2px dashed #334155;
-      border-radius: 8px;
-      margin: 10px 0;
-      padding: 8px;
-    }
-    .zone-title {
-      font-size: 14px;
-      margin-bottom: 6px;
-      color: #94a3b8;
-    }
-    .cards {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .card {
-      width: 60px;
-      height: 85px;
-      background: #1e293b;
-      border-radius: 6px;
-      font-size: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 4px;
-    }
-    button {
-      margin: 8px;
-      padding: 10px 14px;
-      font-size: 14px;
-      border: none;
-      border-radius: 6px;
-      background: #2563eb;
-      color: white;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Duel Masters Classic (Fan Game)</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #e5e7eb;
+}
+header {
+  background: #020617;
+  padding: 12px;
+  text-align: center;
+  font-weight: bold;
+}
+.zone {
+  border: 2px dashed #334155;
+  border-radius: 8px;
+  margin: 8px;
+  padding: 6px;
+}
+.zone-title {
+  font-size: 13px;
+  color: #94a3b8;
+}
+.cards {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.card {
+  width: 70px;
+  height: 95px;
+  background: #1e293b;
+  border-radius: 6px;
+  font-size: 10px;
+  padding: 4px;
+  cursor: pointer;
+}
+button {
+  margin: 6px;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-size: 14px;
+}
+.controls {
+  text-align: center;
+}
+</style>
 </head>
+
 <body>
 
 <header>
-  Duel Masters Classic (DM-01 to DM-12) – Fan Game
+Duel Masters Classic – Fan Game<br/>
+Turn: <span id="turn">1</span>
 </header>
 
-<div class="board">
-
-  <div class="zone">
-    <div class="zone-title">Opponent Shields</div>
-    <div class="cards">
-      <div class="card">Shield</div>
-      <div class="card">Shield</div>
-      <div class="card">Shield</div>
-      <div class="card">Shield</div>
-      <div class="card">Shield</div>
-    </div>
-  </div>
-
-  <div class="zone">
-    <div class="zone-title">Opponent Battle Zone</div>
-    <div class="cards"></div>
-  </div>
-
-  <div class="zone">
-    <div class="zone-title">Your Battle Zone</div>
-    <div class="cards"></div>
-  </div>
-
-  <div class="zone">
-    <div class="zone-title">Your Shields</div>
-    <div class="cards">
-      <div class="card">Shield</div>
-      <div class="card">Shield</div>
-      <div class="card">Shield</div>
-      <div class="card">Shield</div>
-      <div class="card">Shield</div>
-    </div>
-  </div>
-
-  <button onclick="alert('Game logic coming next!')">
-    End Turn
-  </button>
-
+<div class="zone">
+<div class="zone-title">Your Hand</div>
+<div class="cards" id="hand"></div>
 </div>
+
+<div class="zone">
+<div class="zone-title">Your Mana</div>
+<div class="cards" id="mana"></div>
+</div>
+
+<div class="controls">
+<button onclick="drawCard()">Draw</button>
+<button onclick="endTurn()">End Turn</button>
+</div>
+
+<script>
+let turn = 1;
+let deck = [
+  "Bronze-Arm Tribe",
+  "Bloody Squito",
+  "Aqua Hulcus",
+  "Searing Wave",
+  "Terror Pit",
+  "La Ura Giga",
+  "Rothus, the Traveler"
+];
+let hand = [];
+let mana = [];
+
+function render() {
+  document.getElementById("turn").innerText = turn;
+
+  const handDiv = document.getElementById("hand");
+  handDiv.innerHTML = "";
+  hand.forEach((card, index) => {
+    const c = document.createElement("div");
+    c.className = "card";
+    c.innerText = card + "\n(Tap to Mana)";
+    c.onclick = () => playMana(index);
+    handDiv.appendChild(c);
+  });
+
+  const manaDiv = document.getElementById("mana");
+  manaDiv.innerHTML = "";
+  mana.forEach(card => {
+    const c = document.createElement("div");
+    c.className = "card";
+    c.innerText = card;
+    manaDiv.appendChild(c);
+  });
+}
+
+function drawCard() {
+  if (deck.length === 0) return alert("Deck empty");
+  hand.push(deck.shift());
+  render();
+}
+
+function playMana(index) {
+  mana.push(hand.splice(index, 1)[0]);
+  render();
+}
+
+function endTurn() {
+  turn++;
+  drawCard();
+}
+render();
+</script>
 
 </body>
 </html>
