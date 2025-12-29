@@ -14,18 +14,18 @@ body {
 }
 header {
   background: #020617;
-  padding: 12px;
+  padding: 10px;
   text-align: center;
   font-weight: bold;
 }
 .zone {
   border: 2px dashed #334155;
   border-radius: 8px;
-  margin: 8px;
+  margin: 6px;
   padding: 6px;
 }
 .zone-title {
-  font-size: 13px;
+  font-size: 12px;
   color: #94a3b8;
 }
 .cards {
@@ -34,25 +34,24 @@ header {
   flex-wrap: wrap;
 }
 .card {
-  width: 70px;
-  height: 95px;
+  width: 72px;
+  height: 96px;
   background: #1e293b;
   border-radius: 6px;
   font-size: 10px;
   padding: 4px;
   cursor: pointer;
 }
+.controls {
+  text-align: center;
+}
 button {
   margin: 6px;
-  padding: 10px;
+  padding: 8px 12px;
   border-radius: 6px;
   border: none;
   background: #2563eb;
   color: white;
-  font-size: 14px;
-}
-.controls {
-  text-align: center;
 }
 </style>
 </head>
@@ -61,12 +60,22 @@ button {
 
 <header>
 Duel Masters Classic – Fan Game<br/>
-Turn: <span id="turn">1</span>
+Turn <span id="turn">1</span>
 </header>
 
 <div class="zone">
-<div class="zone-title">Your Hand</div>
-<div class="cards" id="hand"></div>
+<div class="zone-title">Opponent Shields</div>
+<div class="cards" id="oppShields"></div>
+</div>
+
+<div class="zone">
+<div class="zone-title">Opponent Battle Zone</div>
+<div class="cards" id="oppBattle"></div>
+</div>
+
+<div class="zone">
+<div class="zone-title">Your Battle Zone</div>
+<div class="cards" id="yourBattle"></div>
 </div>
 
 <div class="zone">
@@ -74,63 +83,97 @@ Turn: <span id="turn">1</span>
 <div class="cards" id="mana"></div>
 </div>
 
+<div class="zone">
+<div class="zone-title">Your Hand</div>
+<div class="cards" id="hand"></div>
+</div>
+
 <div class="controls">
-<button onclick="drawCard()">Draw</button>
 <button onclick="endTurn()">End Turn</button>
 </div>
 
 <script>
 let turn = 1;
 let deck = [
-  "Bronze-Arm Tribe",
-  "Bloody Squito",
-  "Aqua Hulcus",
-  "Searing Wave",
-  "Terror Pit",
-  "La Ura Giga",
-  "Rothus, the Traveler"
+  { name: "Bronze-Arm Tribe", type: "creature", power: 1000 },
+  { name: "Bloody Squito", type: "creature", power: 2000 },
+  { name: "Aqua Hulcus", type: "creature", power: 2000 },
+  { name: "Rothus, the Traveler", type: "creature", power: 4000 }
 ];
 let hand = [];
 let mana = [];
-
-function render() {
-  document.getElementById("turn").innerText = turn;
-
-  const handDiv = document.getElementById("hand");
-  handDiv.innerHTML = "";
-  hand.forEach((card, index) => {
-    const c = document.createElement("div");
-    c.className = "card";
-    c.innerText = card + "\n(Tap to Mana)";
-    c.onclick = () => playMana(index);
-    handDiv.appendChild(c);
-  });
-
-  const manaDiv = document.getElementById("mana");
-  manaDiv.innerHTML = "";
-  mana.forEach(card => {
-    const c = document.createElement("div");
-    c.className = "card";
-    c.innerText = card;
-    manaDiv.appendChild(c);
-  });
-}
+let yourBattle = [];
+let oppShields = ["Shield","Shield","Shield","Shield","Shield"];
 
 function drawCard() {
-  if (deck.length === 0) return alert("Deck empty");
-  hand.push(deck.shift());
+  if (deck.length > 0) hand.push(deck.shift());
+}
+
+function summon(index) {
+  yourBattle.push(hand.splice(index,1)[0]);
   render();
 }
 
 function playMana(index) {
-  mana.push(hand.splice(index, 1)[0]);
+  mana.push(hand.splice(index,1)[0]);
+  render();
+}
+
+function attackShield(index) {
+  if (oppShields.length === 0) {
+    alert("Direct attack! You win!");
+    return;
+  }
+  oppShields.pop();
+  alert("Shield broken!");
   render();
 }
 
 function endTurn() {
   turn++;
   drawCard();
+  render();
 }
+
+function render() {
+  document.getElementById("turn").innerText = turn;
+
+  document.getElementById("hand").innerHTML = "";
+  hand.forEach((card,i)=>{
+    let c=document.createElement("div");
+    c.className="card";
+    c.innerText=card.name+"\n(Summon)";
+    c.onclick=()=>summon(i);
+    document.getElementById("hand").appendChild(c);
+  });
+
+  document.getElementById("mana").innerHTML="";
+  mana.forEach(card=>{
+    let c=document.createElement("div");
+    c.className="card";
+    c.innerText=card.name;
+    document.getElementById("mana").appendChild(c);
+  });
+
+  document.getElementById("yourBattle").innerHTML="";
+  yourBattle.forEach((card,i)=>{
+    let c=document.createElement("div");
+    c.className="card";
+    c.innerText=card.name+"\nATK "+card.power;
+    c.onclick=()=>attackShield(i);
+    document.getElementById("yourBattle").appendChild(c);
+  });
+
+  document.getElementById("oppShields").innerHTML="";
+  oppShields.forEach(()=>{
+    let c=document.createElement("div");
+    c.className="card";
+    c.innerText="Shield";
+    document.getElementById("oppShields").appendChild(c);
+  });
+}
+
+drawCard(); drawCard(); drawCard(); drawCard(); drawCard();
 render();
 </script>
 
