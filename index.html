@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Duel Masters Classic – v3</title>
+<title>Duel Masters Classic – v4</title>
 
 <style>
 body {
@@ -34,8 +34,8 @@ header {
   flex-wrap: wrap;
 }
 .card {
-  width: 74px;
-  height: 100px;
+  width: 76px;
+  height: 102px;
   background: #1e293b;
   border-radius: 6px;
   font-size: 10px;
@@ -79,11 +79,6 @@ Turn <span id="turn">1</span>
 </div>
 
 <div class="zone">
-<div class="zone-title">Your Mana</div>
-<div class="cards" id="mana"></div>
-</div>
-
-<div class="zone">
 <div class="zone-title">Your Hand</div>
 <div class="cards" id="hand"></div>
 </div>
@@ -95,46 +90,51 @@ Turn <span id="turn">1</span>
 <script>
 let turn = 1;
 
+// --- CARD DEFINITIONS ---
 let deck = [
-  { name: "Bronze-Arm Tribe", power: 1000 },
-  { name: "Bloody Squito", power: 2000 },
-  { name: "Aqua Hulcus", power: 2000 },
-  { name: "Rothus, the Traveler", power: 4000 }
+  { name: "Bronze-Arm Tribe", type: "creature", power: 1000 },
+  { name: "Aqua Hulcus", type: "creature", power: 2000 },
+  { name: "Terror Pit", type: "spell", shieldTrigger: true }
 ];
 
 let hand = [];
-let mana = [];
 let yourBattle = [];
 let oppBattle = [
   { name: "Fighter Dual Fang", power: 3000 }
 ];
-let oppShields = ["S","S","S","S","S"];
+
+// Shields now hold REAL cards
+let oppShields = [
+  { name: "Terror Pit", type: "spell", shieldTrigger: true },
+  { name: "Shield" },
+  { name: "Shield" },
+  { name: "Shield" },
+  { name: "Shield" }
+];
 
 function drawCard() {
   if (deck.length > 0) hand.push(deck.shift());
 }
 
 function summon(index) {
+  const card = hand[index];
+  if (card.type !== "creature") {
+    alert("You can only summon creatures.");
+    return;
+  }
   yourBattle.push(hand.splice(index,1)[0]);
   render();
 }
 
-function attackCreature(attackerIndex, defenderIndex) {
-  const atk = yourBattle[attackerIndex];
-  const def = oppBattle[defenderIndex];
-
-  if (atk.power > def.power) {
-    oppBattle.splice(defenderIndex,1);
-    alert("Opponent creature destroyed!");
-  } else if (atk.power < def.power) {
-    yourBattle.splice(attackerIndex,1);
-    alert("Your creature was destroyed!");
-  } else {
-    oppBattle.splice(defenderIndex,1);
-    yourBattle.splice(attackerIndex,1);
-    alert("Both creatures destroyed!");
+function castSpell(card) {
+  if (card.name === "Terror Pit") {
+    if (oppBattle.length === 0) {
+      alert("No target for Terror Pit.");
+      return;
+    }
+    oppBattle.pop();
+    alert("Terror Pit destroys an opponent creature!");
   }
-  render();
 }
 
 function attackShield(attackerIndex) {
@@ -146,8 +146,14 @@ function attackShield(attackerIndex) {
     alert("Direct attack! You win!");
     return;
   }
-  oppShields.pop();
+
+  const shield = oppShields.pop();
   alert("Shield broken!");
+
+  if (shield.shieldTrigger) {
+    alert("Shield Trigger activated: " + shield.name);
+    castSpell(shield);
+  }
   render();
 }
 
@@ -164,17 +170,12 @@ function render() {
   hand.forEach((card,i)=>{
     let c=document.createElement("div");
     c.className="card";
-    c.innerText=card.name+"\n(Summon)";
-    c.onclick=()=>summon(i);
+    c.innerText=card.name + "\n" + card.type;
+    c.onclick=()=>{
+      if (card.type === "creature") summon(i);
+      if (card.type === "spell") castSpell(card);
+    };
     document.getElementById("hand").appendChild(c);
-  });
-
-  document.getElementById("mana").innerHTML="";
-  mana.forEach(card=>{
-    let c=document.createElement("div");
-    c.className="card";
-    c.innerText=card.name;
-    document.getElementById("mana").appendChild(c);
   });
 
   document.getElementById("yourBattle").innerHTML="";
@@ -182,10 +183,7 @@ function render() {
     let c=document.createElement("div");
     c.className="card";
     c.innerText=card.name+"\nATK "+card.power+"\nTap to attack";
-    c.onclick=()=>{
-      if (oppBattle.length > 0) attackCreature(i,0);
-      else attackShield(i);
-    };
+    c.onclick=()=>attackShield(i);
     document.getElementById("yourBattle").appendChild(c);
   });
 
