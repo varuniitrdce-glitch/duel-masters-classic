@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Duel Masters Classic – v5</title>
+<title>Duel Masters Classic – v6</title>
 
 <style>
 body {
@@ -34,16 +34,19 @@ header {
   flex-wrap: wrap;
 }
 .card {
-  width: 80px;
-  height: 110px;
+  width: 82px;
+  height: 112px;
   background: #1e293b;
   border-radius: 6px;
   font-size: 10px;
   padding: 4px;
   cursor: pointer;
 }
+.selected {
+  outline: 3px solid #22c55e;
+}
 .highlight {
-  outline: 2px solid #22c55e;
+  outline: 3px solid #facc15;
 }
 </style>
 </head>
@@ -56,7 +59,7 @@ Turn <span id="turn">1</span>
 </header>
 
 <div class="zone">
-<div class="zone-title">Opponent Shields (click to attack)</div>
+<div class="zone-title">Opponent Shields</div>
 <div class="cards" id="oppShields"></div>
 </div>
 
@@ -66,20 +69,21 @@ Turn <span id="turn">1</span>
 </div>
 
 <div class="zone">
-<div class="zone-title">Your Battle Zone</div>
+<div class="zone-title">Your Battle Zone (select attacker)</div>
 <div class="cards" id="yourBattle"></div>
 </div>
 
 <div class="zone">
-<div class="zone-title">Your Hand (click spell to cast)</div>
+<div class="zone-title">Your Hand</div>
 <div class="cards" id="hand"></div>
 </div>
 
 <script>
 let turn = 1;
-let selectedSpellIndex = null;
+let selectedAttacker = null;
+let pendingShieldTrigger = false;
 
-// --- CARD DATA ---
+// --- DATA ---
 let deck = [
   { name: "Bronze-Arm Tribe", type: "creature", power: 1000 },
   { name: "Aqua Hulcus", type: "creature", power: 2000 },
@@ -89,10 +93,10 @@ let deck = [
 let hand = [];
 let yourBattle = [];
 let oppBattle = [
-  { name: "Fighter Dual Fang", power: 3000 }
+  { name: "Fighter Dual Fang", power: 3000 },
+  { name: "Bloody Squito", power: 2000 }
 ];
 
-// Shields now contain real cards
 let oppShields = [
   { name: "Terror Pit", type: "spell", shieldTrigger: true },
   { name: "Shield" },
@@ -107,91 +111,93 @@ function drawCard() {
 }
 
 function summon(index) {
-  const card = hand[index];
-  if (card.type !== "creature") return;
+  if (hand[index].type !== "creature") return;
   yourBattle.push(hand.splice(index,1)[0]);
   render();
 }
 
-function prepareSpell(index) {
-  const card = hand[index];
-  if (card.type !== "spell") return;
-  selectedSpellIndex = index;
-  alert("Select an opponent creature to destroy.");
+function selectAttacker(index) {
+  selectedAttacker = index;
   render();
 }
 
-function castTerrorPit(targetIndex, fromShield=false) {
-  oppBattle.splice(targetIndex,1);
-  if (!fromShield && selectedSpellIndex !== null) {
-    hand.splice(selectedSpellIndex,1);
-    selectedSpellIndex = null;
-  }
-  alert("Terror Pit destroys a creature!");
-  render();
-}
-
-function breakShield(shieldIndex) {
-  if (oppBattle.length > 0) {
-    alert("You must destroy opponent creatures first.");
+function attackShield(shieldIndex) {
+  if (selectedAttacker === null) {
+    alert("Select a creature to attack with first.");
     return;
   }
+  if (oppBattle.length > 0) {
+    alert("Destroy opponent creatures first.");
+    return;
+  }
+
   const shield = oppShields.splice(shieldIndex,1)[0];
   alert("Shield broken!");
 
+  selectedAttacker = null;
+
   if (shield.shieldTrigger) {
-    alert("Shield Trigger activated: Terror Pit!");
-    castTerrorPit(0, true);
+    alert("Shield Trigger: Terror Pit! Select a creature to destroy.");
+    pendingShieldTrigger = true;
   }
   render();
 }
 
-// --- RENDER ---
+function castShieldTrigger(targetIndex) {
+  oppBattle.splice(targetIndex,1);
+  pendingShieldTrigger = false;
+  alert("Terror Pit destroys the selected creature!");
+  render();
+}
+
 function render() {
   document.getElementById("turn").innerText = turn;
 
+  // Hand
   const handDiv = document.getElementById("hand");
-  handDiv.innerHTML="";
+  handDiv.innerHTML = "";
   hand.forEach((card,i)=>{
-    let c=document.createElement("div");
-    c.className="card";
-    c.innerText=card.name+"\n"+card.type;
-    c.onclick=()=>{
-      if (card.type === "creature") summon(i);
-      if (card.type === "spell") prepareSpell(i);
-    };
+    let c = document.createElement("div");
+    c.className = "card";
+    c.innerText = card.name + "\n" + card.type;
+    c.onclick = ()=>summon(i);
     handDiv.appendChild(c);
   });
 
+  // Your Battle
   const yourDiv = document.getElementById("yourBattle");
-  yourDiv.innerHTML="";
-  yourBattle.forEach(card=>{
-    let c=document.createElement("div");
-    c.className="card";
-    c.innerText=card.name+"\nATK "+card.power;
+  yourDiv.innerHTML = "";
+  yourBattle.forEach((card,i)=>{
+    let c = document.createElement("div");
+    c.className = "card";
+    if (selectedAttacker === i) c.classList.add("selected");
+    c.innerText = card.name + "\nATK " + card.power;
+    c.onclick = ()=>selectAttacker(i);
     yourDiv.appendChild(c);
   });
 
+  // Opponent Battle
   const oppDiv = document.getElementById("oppBattle");
-  oppDiv.innerHTML="";
+  oppDiv.innerHTML = "";
   oppBattle.forEach((card,i)=>{
-    let c=document.createElement("div");
-    c.className="card";
-    c.innerText=card.name+"\nATK "+card.power;
-    if (selectedSpellIndex !== null) {
+    let c = document.createElement("div");
+    c.className = "card";
+    c.innerText = card.name + "\nATK " + card.power;
+    if (pendingShieldTrigger) {
       c.classList.add("highlight");
-      c.onclick=()=>castTerrorPit(i);
+      c.onclick = ()=>castShieldTrigger(i);
     }
     oppDiv.appendChild(c);
   });
 
+  // Shields
   const shieldDiv = document.getElementById("oppShields");
-  shieldDiv.innerHTML="";
+  shieldDiv.innerHTML = "";
   oppShields.forEach((_,i)=>{
-    let c=document.createElement("div");
-    c.className="card";
-    c.innerText="Shield";
-    c.onclick=()=>breakShield(i);
+    let c = document.createElement("div");
+    c.className = "card";
+    c.innerText = "Shield";
+    c.onclick = ()=>attackShield(i);
     shieldDiv.appendChild(c);
   });
 }
