@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Duel Masters Classic – v6</title>
+<title>Duel Masters Classic – v7</title>
 
 <style>
 body {
@@ -80,10 +80,13 @@ Turn <span id="turn">1</span>
 
 <script>
 let turn = 1;
+
+// STATE FLAGS
 let selectedAttacker = null;
 let pendingShieldTrigger = false;
+let selectedSpell = null;
 
-// --- DATA ---
+// --- CARD DATA ---
 let deck = [
   { name: "Bronze-Arm Tribe", type: "creature", power: 1000 },
   { name: "Aqua Hulcus", type: "creature", power: 2000 },
@@ -105,7 +108,7 @@ let oppShields = [
   { name: "Shield" }
 ];
 
-// --- GAME LOGIC ---
+// --- CORE LOGIC ---
 function drawCard() {
   if (deck.length > 0) hand.push(deck.shift());
 }
@@ -117,95 +120,90 @@ function summon(index) {
 }
 
 function selectAttacker(index) {
+  if (pendingShieldTrigger || selectedSpell !== null) return;
   selectedAttacker = index;
   render();
 }
 
+// --- ATTACK CREATURE ---
+function attackCreature(targetIndex) {
+  if (selectedAttacker === null) return;
+
+  const atk = yourBattle[selectedAttacker];
+  const def = oppBattle[targetIndex];
+
+  if (atk.power > def.power) {
+    oppBattle.splice(targetIndex,1);
+    alert("Opponent creature destroyed!");
+  } else if (atk.power < def.power) {
+    yourBattle.splice(selectedAttacker,1);
+    alert("Your creature was destroyed!");
+  } else {
+    oppBattle.splice(targetIndex,1);
+    yourBattle.splice(selectedAttacker,1);
+    alert("Both creatures destroyed!");
+  }
+
+  selectedAttacker = null;
+  render();
+}
+
+// --- ATTACK SHIELD ---
 function attackShield(shieldIndex) {
   if (selectedAttacker === null) {
-    alert("Select a creature to attack with first.");
+    alert("Select an attacking creature first.");
     return;
   }
   if (oppBattle.length > 0) {
-    alert("Destroy opponent creatures first.");
+    alert("You must attack opponent creatures first.");
     return;
   }
 
   const shield = oppShields.splice(shieldIndex,1)[0];
   alert("Shield broken!");
-
   selectedAttacker = null;
 
   if (shield.shieldTrigger) {
-    alert("Shield Trigger: Terror Pit! Select a creature to destroy.");
     pendingShieldTrigger = true;
+    alert("Shield Trigger: Terror Pit! Select a creature to destroy.");
   }
   render();
 }
 
-function castShieldTrigger(targetIndex) {
-  oppBattle.splice(targetIndex,1);
-  pendingShieldTrigger = false;
-  alert("Terror Pit destroys the selected creature!");
+// --- SPELL CASTING ---
+function prepareSpell(index) {
+  if (hand[index].type !== "spell") return;
+  selectedSpell = index;
+  alert("Select an opponent creature to destroy.");
   render();
 }
 
+function castSpell(targetIndex) {
+  oppBattle.splice(targetIndex,1);
+  hand.splice(selectedSpell,1);
+  selectedSpell = null;
+  alert("Terror Pit destroys the creature!");
+  render();
+}
+
+// --- SHIELD TRIGGER SPELL ---
+function castShieldTrigger(targetIndex) {
+  oppBattle.splice(targetIndex,1);
+  pendingShieldTrigger = false;
+  alert("Shield Trigger destroys the creature!");
+  render();
+}
+
+// --- RENDER ---
 function render() {
   document.getElementById("turn").innerText = turn;
 
   // Hand
   const handDiv = document.getElementById("hand");
-  handDiv.innerHTML = "";
+  handDiv.innerHTML="";
   hand.forEach((card,i)=>{
-    let c = document.createElement("div");
-    c.className = "card";
-    c.innerText = card.name + "\n" + card.type;
-    c.onclick = ()=>summon(i);
-    handDiv.appendChild(c);
-  });
-
-  // Your Battle
-  const yourDiv = document.getElementById("yourBattle");
-  yourDiv.innerHTML = "";
-  yourBattle.forEach((card,i)=>{
-    let c = document.createElement("div");
-    c.className = "card";
-    if (selectedAttacker === i) c.classList.add("selected");
-    c.innerText = card.name + "\nATK " + card.power;
-    c.onclick = ()=>selectAttacker(i);
-    yourDiv.appendChild(c);
-  });
-
-  // Opponent Battle
-  const oppDiv = document.getElementById("oppBattle");
-  oppDiv.innerHTML = "";
-  oppBattle.forEach((card,i)=>{
-    let c = document.createElement("div");
-    c.className = "card";
-    c.innerText = card.name + "\nATK " + card.power;
-    if (pendingShieldTrigger) {
-      c.classList.add("highlight");
-      c.onclick = ()=>castShieldTrigger(i);
-    }
-    oppDiv.appendChild(c);
-  });
-
-  // Shields
-  const shieldDiv = document.getElementById("oppShields");
-  shieldDiv.innerHTML = "";
-  oppShields.forEach((_,i)=>{
-    let c = document.createElement("div");
-    c.className = "card";
-    c.innerText = "Shield";
-    c.onclick = ()=>attackShield(i);
-    shieldDiv.appendChild(c);
-  });
-}
-
-// INIT
-drawCard(); drawCard(); drawCard(); drawCard(); drawCard();
-render();
-</script>
-
-</body>
-</html>
+    let c=document.createElement("div");
+    c.className="card";
+    c.innerText=card.name+"\n"+card.type;
+    c.onclick=()=>{
+      if (card.type =
