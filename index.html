@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Duel Masters Classic (Fan Game)</title>
+<title>Duel Masters Classic – v3</title>
 
 <style>
 body {
@@ -34,8 +34,8 @@ header {
   flex-wrap: wrap;
 }
 .card {
-  width: 72px;
-  height: 96px;
+  width: 74px;
+  height: 100px;
   background: #1e293b;
   border-radius: 6px;
   font-size: 10px;
@@ -94,16 +94,21 @@ Turn <span id="turn">1</span>
 
 <script>
 let turn = 1;
+
 let deck = [
-  { name: "Bronze-Arm Tribe", type: "creature", power: 1000 },
-  { name: "Bloody Squito", type: "creature", power: 2000 },
-  { name: "Aqua Hulcus", type: "creature", power: 2000 },
-  { name: "Rothus, the Traveler", type: "creature", power: 4000 }
+  { name: "Bronze-Arm Tribe", power: 1000 },
+  { name: "Bloody Squito", power: 2000 },
+  { name: "Aqua Hulcus", power: 2000 },
+  { name: "Rothus, the Traveler", power: 4000 }
 ];
+
 let hand = [];
 let mana = [];
 let yourBattle = [];
-let oppShields = ["Shield","Shield","Shield","Shield","Shield"];
+let oppBattle = [
+  { name: "Fighter Dual Fang", power: 3000 }
+];
+let oppShields = ["S","S","S","S","S"];
 
 function drawCard() {
   if (deck.length > 0) hand.push(deck.shift());
@@ -114,12 +119,29 @@ function summon(index) {
   render();
 }
 
-function playMana(index) {
-  mana.push(hand.splice(index,1)[0]);
+function attackCreature(attackerIndex, defenderIndex) {
+  const atk = yourBattle[attackerIndex];
+  const def = oppBattle[defenderIndex];
+
+  if (atk.power > def.power) {
+    oppBattle.splice(defenderIndex,1);
+    alert("Opponent creature destroyed!");
+  } else if (atk.power < def.power) {
+    yourBattle.splice(attackerIndex,1);
+    alert("Your creature was destroyed!");
+  } else {
+    oppBattle.splice(defenderIndex,1);
+    yourBattle.splice(attackerIndex,1);
+    alert("Both creatures destroyed!");
+  }
   render();
 }
 
-function attackShield(index) {
+function attackShield(attackerIndex) {
+  if (oppBattle.length > 0) {
+    alert("Opponent has creatures. Attack them first.");
+    return;
+  }
   if (oppShields.length === 0) {
     alert("Direct attack! You win!");
     return;
@@ -138,7 +160,7 @@ function endTurn() {
 function render() {
   document.getElementById("turn").innerText = turn;
 
-  document.getElementById("hand").innerHTML = "";
+  document.getElementById("hand").innerHTML="";
   hand.forEach((card,i)=>{
     let c=document.createElement("div");
     c.className="card";
@@ -159,9 +181,20 @@ function render() {
   yourBattle.forEach((card,i)=>{
     let c=document.createElement("div");
     c.className="card";
-    c.innerText=card.name+"\nATK "+card.power;
-    c.onclick=()=>attackShield(i);
+    c.innerText=card.name+"\nATK "+card.power+"\nTap to attack";
+    c.onclick=()=>{
+      if (oppBattle.length > 0) attackCreature(i,0);
+      else attackShield(i);
+    };
     document.getElementById("yourBattle").appendChild(c);
+  });
+
+  document.getElementById("oppBattle").innerHTML="";
+  oppBattle.forEach(card=>{
+    let c=document.createElement("div");
+    c.className="card";
+    c.innerText=card.name+"\nATK "+card.power;
+    document.getElementById("oppBattle").appendChild(c);
   });
 
   document.getElementById("oppShields").innerHTML="";
